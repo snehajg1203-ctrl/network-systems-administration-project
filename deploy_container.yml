@@ -1,0 +1,35 @@
+---
+- name: Deploy custom Nginx webpage using Docker
+  hosts: webserver
+  become: yes
+  tasks:
+    - name: Ensure Docker is running
+      service:
+        name: docker
+        state: started
+
+    - name: Remove old container if it exists
+      docker_container:
+        name: webserver
+        state: absent
+
+    - name: Pull latest Nginx image
+      docker_image:
+        name: nginx
+        source: pull
+
+    - name: Copy custom webpage to remote host
+      ansible.builtin.copy:
+        src: ./site/index.html
+        dest: /home/ubuntu/index.html
+
+    - name: Run Nginx container with custom site
+      docker_container:
+        name: webserver
+        image: nginx
+        state: started
+        restart_policy: always
+        published_ports:
+          - "80:80"
+        volumes:
+          - /home/ubuntu/index.html:/usr/share/nginx/html/index.html:ro
